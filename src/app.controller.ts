@@ -10,7 +10,7 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Get()
+  @Get('/serag')
   getTheWorld(): string{
     
     return " What the world";

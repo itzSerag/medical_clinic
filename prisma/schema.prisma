@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_DIRECT_URL")
+}
+
+model Specializations {
+  id                   Int            @id @default(autoincrement())
+  name                 String         @db.VarChar(100)
+  visit_price          Decimal        @db.Decimal(10, 2)
+  visit_checking_price Decimal        @db.Decimal(10, 2)
+  description          String?        @db.VarChar(500)
+  staff                Staff[]
+  services             Services[]
+  Reservations         Reservations[]
+
+  @@index([name])
+}
+
+model Staff {
+  id                   String           @id @default(uuid())
+  name                 String           @db.VarChar(100)
+  email                String           @unique @db.VarChar(255)
+  password             String
+  phone_number         String           @db.VarChar(20)
+  specialization_id    Int?
+  percentage_per_visit Decimal?         @db.Decimal(5, 2)
+  role                 StaffRole
+  specialization       Specializations? @relation(fields: [specialization_id], references: [id])
+  staff_reservations   Reservations[]
+  Users                Users[]
+  deleted_at           DateTime?
+
+  @@index([email, phone_number])
+}
+
+model Patients {
+  id                    String         @id @default(uuid())
+  name                  String         @db.VarChar(100)
+  age                   Int
+  gender                Gender
+  address               String?        @db.VarChar(255)
+  phone_number_patients String         @db.VarChar(20)
+  patient_reservations  Reservations[]
+  Billing               Billing[]
+  deleted_at            DateTime?
+
+  @@index([phone_number_patients])
+}
+
+model Services {
+  id                   Int                    @id @default(autoincrement())
+  name                 String                 @db.VarChar(100)
+  description          String?                @db.VarChar(500)
+  price                Decimal                @db.Decimal(10, 2)
+  specialization_id    Int
+  specialization       Specializations        @relation(fields: [specialization_id], references: [id])
+  reservation_services Reservation_Services[]
+
+  @@index([name])
+}
+
+model Reservations {
+  id                   String                 @id @default(uuid())
+  patient_id           String
+  staff_id             String?
+  specialization_id    Int
+  date                 DateTime               @db.Date
+  time                 DateTime               @db.Time
+  initial_visit_cost   Decimal                @db.Decimal(10, 2)
+  total_cost           Decimal?               @db.Decimal(10, 2)
+  status               ReservationStatus
+  patient              Patients               @relation(fields: [patient_id], references: [id])
+  staff                Staff?                 @relation(fields: [staff_id], references: [id])
+  specialization       Specializations        @relation(fields: [specialization_id], references: [id])
+  reservation_services Reservation_Services[]
+  billings             Billing[]
+
+  @@index([date, time])
+}
+
+model Reservation_Services {
+  id             Int          @id @default(autoincrement())
+  reservation_id String
+  service_id     Int?
+  reservation    Reservations @relation(fields: [reservation_id], references: [id])
+  service        Services?    @relation(fields: [service_id], references: [id])
+}
+
+model Billing {
+  id             Int           @id @default(autoincrement())
+  patient_id     String?
+  reservation_id String?
+  total_amount   Decimal?      @db.Decimal(10, 2)
+  paid_amount    Decimal?      @db.Decimal(10, 2)
+  billing_date   DateTime      @db.Date
+  patient        Patients?     @relation(fields: [patient_id], references: [id])
+  reservation    Reservations? @relation(fields: [reservation_id], references: [id])
+
+  @@index([billing_date])
+}
+
+model Users {
+  id         String    @id @default(uuid())
+  name       String    @db.VarChar(100)
+  email      String    @unique @db.VarChar(255)
+  password   String
+  role       UserRole
+  staff      Staff?    @relation(fields: [staffId], references: [id])
+  staffId    String?
+  deleted_at DateTime?
+
+  @@index([email])
+}
+
+enum UserRole {
+  DOCTOR
+  NURSE
+  RECEPTIONIST
+  ADMIN
+}
+
+enum StaffRole {
+  DOCTOR
+  NURSE
+  RECEPTIONIST
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum ReservationStatus {
+  SCHEDULED
+  CONFIRMED // means the patient has arrived and the visit has started
+  CANCELLED
+  COMPLETED
+}
